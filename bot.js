@@ -2,6 +2,10 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const config = require('./config.json');
 const credentials = require('./credentials.json');
+const commands = require('./commands.js');
+
+var sentiment = require('@trainorpj/sentiment');
+
 let global_commands = {};
 let server_commands = {};
 let prefix = "!";
@@ -9,33 +13,27 @@ let summon_overrides = {
   259701911320657920:true,
   181185781094809610:true
 }
-let summon_limit = 10;
+let blacklist_from_fun = {
+  507714276044308490:true
+}
+let mad_score = {
+  comparative: -2.5,
+  total: -10
+};
+let fun_cooldown = 20000;
+let on_cooldown = false;
+let debug = false;
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
+  createGlobalCommand("testsentiment", context => {
+    commands.testsentiment(context);
+  });
   createGlobalCommand("summon", context => {
-    // console.log(context.mentions.users.first());
-    if(context.args[0] && (context.member.hasPermission('ADMINISTRATOR') || summon_overrides[context.member.id])) {
-      let member = context.mentions.members.first();
-      if(member) {
-        let temp = context.mentions.members.first().voice.channel;
-        let goto = context.guild.channels.cache.filter(c => c.type=="voice").filter(c => !c.members.first()).random();
-        let count = 4;
-        if(parseInt(context.args[1])){
-          count = parseInt(context.args[1]);
-        }
-        if (count > summon_limit) {
-          context.reply(`The current summon limit is ${summon_limit} and your input has been capped`);
-          count = summon_limit;
-        }
-        if(temp) {
-          for(let i = 0; i< count; i++){
-            member.voice.setChannel(goto);
-            member.voice.setChannel(temp);
-          }
-        }
-      }
-    }
+    commands.summon(context);
+  });
+  createGlobalCommand("debug", context=> {
+    commands.toggleDebug(context);
   });
 });
 
@@ -44,6 +42,17 @@ client.on('message', msg => {
   if(msg.content === "dink" && (msg.author.id == 251132701917184000)){
     msg.reply("donk");
   }
+  // Fun Features
+  if(!on_cooldown) {
+    let message_sentiment = sentiment(msg.content);
+    if(debug) console.log(message_sentiment);
+    if(message_sentiment.comparative < mad_score.comparative || message_sentiment.score < mad_score.total) {
+      msg.reply("What's wrong homie?");
+      on_cooldown=true;
+      setTimeout(()=>{on_cooldown=false;}, fun_cooldown);
+    };
+  }
+  
   //testing section
   if(msg.author.id == 251132701917184000) {
     
@@ -56,7 +65,7 @@ function validateCommand(msg){
   if(message.substring(0,prefix.length) == prefix) {
     var split = message.split(" ");
     let command = split[0].substring(prefix.length, split[0].length)
-    console.log(`Parsed command: ${command}`)
+    if(debug) console.log(`Parsed command: ${command}`)
     if(global_commands[command] != null) {
       ctx = msg;
       ctx.args = [];
