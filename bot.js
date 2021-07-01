@@ -59,6 +59,15 @@ client.on('message', msg => {
   }
   validateCommand(msg);
 })
+let temp_cooldown = false;
+client.on("guildMemberUpdate", function(oldUser, newUser){
+  if(oldUser.id == 449046144035848202 && !temp_cooldown){
+    newUser.setNickname("FaZe Noobani");
+    console.log("dani tried");
+    temp_cooldown = true;
+    setTimeout(()=>{temp_cooldown=false},1000);
+  }
+});
 
 function validateCommand(msg){
   message = msg.content
