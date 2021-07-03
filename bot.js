@@ -3,19 +3,23 @@ const client = new Discord.Client();
 const config = require('./config.json');
 const credentials = require('./credentials.json');
 const commands = require('./commands.js');
+const Valorant = require('@liamcottle/valorant.js');
+const valorantApi = new Valorant.API('NA');
+
+function calculateElo(tier, progress) {
+  if(tier >= 21){
+    return 1800 + progress;
+  } else {
+    return ((tier*100)-300) + progress;
+  }
+}
 
 var sentiment = require('@trainorpj/sentiment');
 
 let global_commands = {};
 let server_commands = {};
 let prefix = "!";
-let summon_overrides = {
-  259701911320657920:true,
-  181185781094809610:true
-}
-let blacklist_from_fun = {
-  507714276044308490:true
-}
+
 let mad_score = {
   comparative: -2.5,
   total: -10
@@ -23,8 +27,14 @@ let mad_score = {
 let fun_cooldown = 20000;
 let on_cooldown = false;
 let debug = false;
+let apiInitialized = true;
 
 client.on('ready', () => {
+  valorantApi.authorize("StealthSov", "70ZPJBqpjff3").then((response)=>{
+    apiInitialized = true;
+  }).catch((err)=>{
+    console.log(err);
+  });
   console.log(`Logged in as ${client.user.tag}!`);
   createGlobalCommand("testsentiment", context => {
     commands.testsentiment(context);
@@ -35,6 +45,14 @@ client.on('ready', () => {
   createGlobalCommand("debug", context=> {
     commands.toggleDebug(context);
   });
+  createGlobalCommand("stealthrank", context=> {
+    valorantApi.getPlayerMMR(valorantApi.user_id).then((response)=>{
+      if(response.data.LatestCompetitiveUpdate){
+        let RankInfo = response.data.QueueSkills.competitive.SeasonalInfoBySeasonID[response.data.LatestCompetitiveUpdate.SeasonID];
+        context.reply(`Rank: ${Valorant.Tiers[RankInfo.CompetitiveTier]}\nRR: ${RankInfo.RankedRating}\nTotal: ${calculateElo(RankInfo.CompetitiveTier, RankInfo.RankedRating)}`);
+      }
+    })
+  })
 });
 
 client.on('message', msg => {
@@ -59,15 +77,6 @@ client.on('message', msg => {
   }
   validateCommand(msg);
 })
-let temp_cooldown = false;
-client.on("guildMemberUpdate", function(oldUser, newUser){
-  if(oldUser.id == 449046144035848202 && !temp_cooldown){
-    newUser.setNickname("FaZe Noobani");
-    console.log("dani tried");
-    temp_cooldown = true;
-    setTimeout(()=>{temp_cooldown=false},1000);
-  }
-});
 
 function validateCommand(msg){
   message = msg.content
@@ -82,9 +91,10 @@ function validateCommand(msg){
         ctx.args.push(split[i]);
       }
       global_commands[command](ctx);
-    } else if (server_commands[msg.guild.id][command] != null){
-      server_commands[msg.guild.id][command](ctx);
-    }
+    } 
+    // else if (server_commands[msg.guild.id][command] != null){
+    //   server_commands[msg.guild.id][command](ctx);
+    // }
   }
 }
 
@@ -93,3 +103,4 @@ function createGlobalCommand(command, callback) {
 }
 
 client.login(credentials.token);
+

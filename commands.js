@@ -1,5 +1,10 @@
 var sentiment = require('@trainorpj/sentiment');
 
+let summon_overrides = {
+  259701911320657920:true,
+  181185781094809610:true
+}
+
 exports.testsentiment = (context) => {
     let sen = sentiment(context.args.join(" "));
     context.reply(`the phrase "${context.args.join(" ")}" has the following sentiment \`\`\`Comparative: ${sen.comparative}\nTotal: ${sen.score}\`\`\``);
