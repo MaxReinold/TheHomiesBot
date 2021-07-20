@@ -57,67 +57,25 @@ client.on("ready", () => {
   createGlobalCommand("debug", (context) => {
     commands.toggleDebug(context);
   });
-  // createGlobalCommand("rank", (context) => {
-  //   let key = context.guild.id;
-  //   if (credentials.Guilds[`${key}`]) {
-  //     if (credentials.Guilds[`${key}`].Initialized) {
-  //       valorantApi
-  //         .getPlayerMMR(valorantApi.user_id)
-  //         .then((response) => {
-  //           if (response.data.LatestCompetitiveUpdate) {
-  //             let RankInfo =
-  //               response.data.QueueSkills.competitive.SeasonalInfoBySeasonID[
-  //                 response.data.LatestCompetitiveUpdate.SeasonID
-  //               ];
-  //             RankedMessageCache = `Grim's rank is \`\`\`
-  //                 Rank: ${Valorant.Tiers[RankInfo.CompetitiveTier]}\n
-  //                 RR: ${RankInfo.RankedRating}\n
-  //                 Total: ${calculateElo(
-  //                   RankInfo.CompetitiveTier,
-  //                   RankInfo.RankedRating
-  //                 )}
-  //                 \`\`\``;
-  //             context.reply(RankedMessageCache);
-  //           }
-  //         })
-  //         .catch((err) => {
-  //           console.log(err);
-  //         });
-  //     }
-  //   } else {
-  //     context.reply(
-  //       "Rank command is not setup for this server, ask the content creator to contact @Stealth#0010"
-  //     );
-  //   }
+  
+  createGlobalCommand("rank", context => {
+    if(credentials.Guilds[`${context.guild.id}`].ApiObject) {
+      credentials.Guilds[`${context.guild.id}`].ApiObject.getPlayerMMR(credentials.Guilds[`${context.guild.id}`].ApiObject.user_id).then(res =>{
+        let latestSeason = res.data.LatestCompetitiveUpdate.SeasonID;
+        let seasonInfo = res.data.QueueSkills.competitive.SeasonalInfoBySeasonID[latestSeason];
+        if(seasonInfo.TotalWinsNeededForRank > 0) {
+          context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname} has not placed yet, ${seasonInfo.TotalWinsNeededForRank} games left.`)
+        } else {
+          context.reply(`\`\`\`
+Rank: ${Valorant.Tiers[seasonInfo.Rank]}
+RR: ${seasonInfo.RankedRating}\`\`\``);
+        }
+      })
+    } else {
+      context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
+    }
+  })
 
-  //   // valorantApi.getPlayerMMR(valorantApi.user_id).then((response)=>{
-  //   //   if(response.data.LatestCompetitiveUpdate){
-  //   //     let RankInfo = response.data.QueueSkills.competitive.SeasonalInfoBySeasonID[response.data.LatestCompetitiveUpdate.SeasonID];
-  //   //     RankedMessageCache = `Grim's rank is \`\`\`
-  //   //     Rank: ${Valorant.Tiers[RankInfo.CompetitiveTier]}\n
-  //   //     RR: ${RankInfo.RankedRating}\n
-  //   //     Total: ${calculateElo(RankInfo.CompetitiveTier, RankInfo.RankedRating)}
-  //   //     \`\`\``;
-  //   //     context.reply(RankedMessageCache);
-  //   //   }
-  //   // }).catch((err)=>{
-  //   //   if(err.data.errorCode=="BAD_CLAIMS") {
-  //   //     console.log("Rank called with invalid api token");
-  //   //     valorantApi.authorize("Grimothee", "Willow021").then((response)=>{
-  //   //       apiInitialized = true;
-  //   //       let RankInfo = response.data.QueueSkills.competitive.SeasonalInfoBySeasonID[response.data.LatestCompetitiveUpdate.SeasonID];
-  //   //       RankedMessageCache = `Grim's rank is \`\`\`Rank: ${Valorant.Tiers[RankInfo.CompetitiveTier]}\nRR: ${RankInfo.RankedRating}\nTotal: ${calculateElo(RankInfo.CompetitiveTier, RankInfo.RankedRating)}\`\`\``;
-  //   //       context.reply(RankedMessageCache);
-  //   //     }).catch((err)=>{
-  //   //       context.reply("There seems to be a problem with the request. Last known data:\n" + RankedMessageCache);
-  //   //       console.log(err);
-  //   //     });
-  //   //   } else {
-  //   //     context.reply("There seems to be a problem with the request. Last known data:\n" + RankedMessageCache);
-  //   //     console.log(err);
-  //   //   }
-  //   // });
-  // });
 });
 
 client.on("message", (msg) => {
