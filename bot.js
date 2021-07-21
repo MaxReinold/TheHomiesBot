@@ -33,21 +33,8 @@ let RankedMessageCache;
 
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
-  for (const key in credentials.Guilds) {
-    temp = credentials.Guilds[`${key}`].CreatorLogin;
-    credentials.Guilds[`${key}`].ApiObject = new Valorant.API("NA");
-    credentials.Guilds[`${key}`].ApiObject.authorize(
-      temp.Username,
-      temp.Password
-    )
-      .then((response) => {
-        credentials.Guilds[`${key}`].Initialized = true;
-        console.log(`loaded ${credentials.Guilds[`${key}`].Name}`);
-      })
-      .catch((err) => {
-        console.log(`loading ${credentials.Guilds[`${key}`].Name} failed`);
-      });
-  }
+  refreshValorantApi();
+  setInterval(refreshValorantApi, 300000)
   createGlobalCommand("testsentiment", (context) => {
     commands.testsentiment(context);
   });
@@ -66,10 +53,12 @@ client.on("ready", () => {
         if(seasonInfo.TotalWinsNeededForRank > 0) {
           context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname} has not placed yet, ${seasonInfo.TotalWinsNeededForRank} games left.`)
         } else {
-          context.reply(`\`\`\`
+          context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname}'s rank is: \`\`\`
 Rank: ${Valorant.Tiers[seasonInfo.Rank]}
 RR: ${seasonInfo.RankedRating}\`\`\``);
         }
+      }).catch(err => {
+
       })
     } else {
       context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
@@ -132,6 +121,28 @@ function createGlobalCommand(command, callback) {
 function createGuildCommand(key, command, callback) {
   if (server_commands[key]) {
     server_commands[key][command] = callback;
+  }
+}
+
+function refreshValorantApi() { 
+  for (const key in credentials.Guilds) {
+    temp = credentials.Guilds[`${key}`].CreatorLogin;
+    credentials.Guilds[`${key}`].ApiObject = new Valorant.API("NA");
+    credentials.Guilds[`${key}`].ApiObject.authorize(
+      temp.Username,
+      temp.Password
+    )
+      .then((response) => {
+        if(credentials.Guilds[`${key}`].Initialized) {
+          console.log(`reloaded ${credentials.Guilds[`${key}`].Name}`);
+        }else {
+          credentials.Guilds[`${key}`].Initialized = true;
+          console.log(`loaded ${credentials.Guilds[`${key}`].Name}`);
+        }
+      })
+      .catch((err) => {
+        console.log(`loading ${credentials.Guilds[`${key}`].Name} failed`);
+      });
   }
 }
 
