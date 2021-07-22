@@ -18,7 +18,7 @@ var sentiment = require("@trainorpj/sentiment");
 
 let global_commands = {};
 let server_commands = {};
-let prefix = "!";
+let prefix = "-";
 
 let mad_score = {
   comparative: -2.5,
@@ -54,10 +54,14 @@ client.on("ready", () => {
           context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname} has not placed yet, ${seasonInfo.TotalWinsNeededForRank} games left.`)
         } else {
           context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname}'s rank is: \`\`\`
-Rank: ${Valorant.Tiers[seasonInfo.Rank]}
-RR: ${seasonInfo.RankedRating}\`\`\``);
+Rank: ${Valorant.Tiers[seasonInfo.CompetitiveTier]}
+RR: ${seasonInfo.RankedRating}
+Wins: ${seasonInfo.NumberOfWinsWithPlacements}${seasonInfo.LeaderboardRank!=0?"\nLeaderboard Rank: " + seasonInfo.LeaderboardRank:""}\`\`\`
+`);
         }
+        console.log(seasonInfo)
       }).catch(err => {
+
 
       })
     } else {

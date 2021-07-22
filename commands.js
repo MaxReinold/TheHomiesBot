@@ -13,7 +13,7 @@ exports.testsentiment = (context) => {
 let summon_limit = 10;
 
 exports.summon = (context) =>{
-    if(context.args[0] && (context.member.hasPermission('ADMINISTRATOR') || summon_overrides[context.member.id])) {
+    if((context.args[0] && (context.member.hasPermission('ADMINISTRATOR') || summon_overrides[context.member.id])) || context.channel.id == 864775889547689984) {
         let member = context.mentions.members.first();
         if(member) {
           let temp = context.mentions.members.first().voice.channel;
