@@ -46,6 +46,10 @@ client.on("ready", () => {
   });
   
   createGlobalCommand("rank", context => {
+    if(!(`${context.guild.id}` in credentials)) {
+      context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
+      return;
+    }
     if(credentials.Guilds[`${context.guild.id}`].ApiObject) {
       credentials.Guilds[`${context.guild.id}`].ApiObject.getPlayerMMR(credentials.Guilds[`${context.guild.id}`].ApiObject.user_id).then(res =>{
         let latestSeason = res.data.LatestCompetitiveUpdate.SeasonID;
