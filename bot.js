@@ -5,6 +5,7 @@ const credentials = require("./credentials.json");
 const commands = require("./commands.js");
 const Valorant = require("@liamcottle/valorant.js");
 const valorantApi = new Valorant.API("NA");
+const zlib = require('zlib');
 
 function calculateElo(tier, progress) {
   if (tier >= 21) {
@@ -45,8 +46,25 @@ client.on("ready", () => {
     commands.toggleDebug(context);
   });
   
+  createGlobalCommand("crosshair", context => {
+    if(!(`${context.guild.id}` in credentials.Guilds)) {
+      context.reply("Auto-Updating Crosshair is not setup for this guild. Contact Stealth#0010 to set it up.");
+      return;
+    };
+    if(credentials.Guilds[`${context.guild.id}`].ApiObject) {
+      credentials.Guilds[`${context.guild.id}`].ApiObject.getPreferences().then(res => {
+        console.log(dec(res.data.data));
+      }).catch(err => {
+        
+        console.log(err);
+      })
+    } else {
+      context.reply("Auto-Updating Crosshair is not setup for this guild. Contact Stealth#0010 to set it up.");
+    }
+  });
+
   createGlobalCommand("rank", context => {
-    if(!(`${context.guild.id}` in credentials)) {
+    if(!(`${context.guild.id}` in credentials.Guilds)) {
       context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
       return;
     }
@@ -155,3 +173,10 @@ function refreshValorantApi() {
 }
 
 client.login(credentials.token);
+
+function dec(data) {
+  let buff = Buffer.from(data, 'base64');
+  let text = buff.toString('utf-8');
+  zlib.deflate(text);
+  return text;
+}
