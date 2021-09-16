@@ -90,15 +90,17 @@ client.on("message", (msg) => {
       message_sentiment.comparative < mad_score.comparative ||
       message_sentiment.score < mad_score.total
     ) {
-      if(Math.random() < .96){
+      let chance = Math.random();
+      if(chance < .28){
         msg.reply("What's wrong homie?");
-      } else {
+        on_cooldown = true;
+        setTimeout(() => {
+          on_cooldown = false;
+        }, fun_cooldown);
+      } else if (chance < .3){
         msg.reply("https://tenor.com/view/cope-copeharder-coping-keepcoping-gif-21255783");
       }
-      on_cooldown = true;
-      setTimeout(() => {
-        on_cooldown = false;
-      }, fun_cooldown);
+      
     }
   }
 
