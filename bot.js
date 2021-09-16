@@ -30,6 +30,7 @@ let on_cooldown = false;
 let debug = false;
 let apiInitialized = true;
 let RankedMessageCache;
+let messageCollectors = {};
 
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -44,6 +45,43 @@ client.on("ready", () => {
   createGlobalCommand("debug", (context) => {
     commands.toggleDebug(context);
   });
+  createGlobalCommand("saveChat", context =>{
+    if(!context.member.hasPermission('ADMINISTRATOR')) return;
+    if(!(context.channel.id in messageCollectors)) {
+      let filter = m => true;
+      messageCollectors[context.channel.id] = context.channel.createMessageCollector(filter, {max: 1000});
+      context.reply("Channel location has been saved, max revert amount is 1k messages. If it reaches this amount it will automatically be disposed of wihtout deleting messages.");
+      messageCollectors[context.channel.id].on('end', m => {
+        messageCollectors[context.channel.id].stop();
+        delete messageCollectors[context.channel.id];
+      })
+      context.delete();
+    } else {
+      context.reply("A saved location already exists for this channel, used the revert command to delete and close it, or use the close command to delete only the collector.");
+    }
+  })
+  createGlobalCommand("revert", context =>{
+    if(!context.member.hasPermission('ADMINISTRATOR')) return;
+    if(context.channel.id in messageCollectors) {
+      context.channel.bulkDelete(messageCollectors[context.channel.id].collected);
+      messageCollectors[context.channel.id].stop();
+      delete messageCollectors[context.channel.id];
+    } else {
+      context.reply("A save state doesn't exist for this channel. Create one using the saveChat command.");
+      context.delete();
+    }
+  })
+  createGlobalCommand("close", context =>{
+    if(!context.member.hasPermission('ADMINISTRATOR')) return;
+    if(context.channel.id in messageCollectors) {
+      messageCollectors[context.channel.id].stop();
+      delete messageCollectors[context.channel.id];
+      context.reply("Active chat save state has been closed.");
+      context.delete();
+    } else {
+      context.reply("A save state doesn't exist for this channel. Create one using the saveChat command.");
+    }
+  })
   
   createGlobalCommand("rank", context => {
     if(credentials.Guilds[`${context.guild.id}`].ApiObject) {
@@ -72,11 +110,10 @@ Wins: ${seasonInfo.NumberOfWinsWithPlacements}${seasonInfo.LeaderboardRank!=0?"\
 });
 
 client.on("message", (msg) => {
-  // ALMOND DINK DONK
-  if (msg.content === "dink" && msg.author.id == 251132701917184000) {
-    msg.reply("donk");
-  }
   // Fun Features
+  // if (msg.author.id == 449046144035848202) {
+  //   if(Math.random() > 0.80) msg.reply("^ Canadian btw ^");
+  // }
   if (!on_cooldown) {
     let message_sentiment = sentiment(msg.content);
     if (debug) console.log(message_sentiment);
@@ -84,7 +121,11 @@ client.on("message", (msg) => {
       message_sentiment.comparative < mad_score.comparative ||
       message_sentiment.score < mad_score.total
     ) {
-      msg.reply("What's wrong homie?");
+      if(Math.random() < .96){
+        msg.reply("What's wrong homie?");
+      } else {
+        msg.reply("https://tenor.com/view/cope-copeharder-coping-keepcoping-gif-21255783");
+      }
       on_cooldown = true;
       setTimeout(() => {
         on_cooldown = false;
