@@ -36,7 +36,7 @@ let messageCollectors = {};
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
   refreshValorantApi();
-  setInterval(refreshValorantApi, 300000)
+  setInterval(refreshValorantApi, 600000)
   createGlobalCommand("testsentiment", (context) => {
     commands.testsentiment(context);
   });
@@ -46,86 +46,33 @@ client.on("ready", () => {
   createGlobalCommand("debug", (context) => {
     commands.toggleDebug(context);
   });
-  createGlobalCommand("saveChat", context =>{
-    if(!context.member.hasPermission('ADMINISTRATOR')) return;
-    if(!(context.channel.id in messageCollectors)) {
-      let filter = m => true;
-      messageCollectors[context.channel.id] = context.channel.createMessageCollector(filter, {max: 1000});
-      context.reply("Channel location has been saved, max revert amount is 1k messages. If it reaches this amount it will automatically be disposed of wihtout deleting messages.");
-      messageCollectors[context.channel.id].on('end', m => {
-        messageCollectors[context.channel.id].stop();
-        delete messageCollectors[context.channel.id];
-      })
-      context.delete();
-    } else {
-      context.reply("A saved location already exists for this channel, used the revert command to delete and close it, or use the close command to delete only the collector.");
-    }
-  })
-  createGlobalCommand("revert", context =>{
-    if(!context.member.hasPermission('ADMINISTRATOR')) return;
-    if(context.channel.id in messageCollectors) {
-      context.channel.bulkDelete(messageCollectors[context.channel.id].collected);
-      messageCollectors[context.channel.id].stop();
-      delete messageCollectors[context.channel.id];
-    } else {
-      context.reply("A save state doesn't exist for this channel. Create one using the saveChat command.");
-      context.delete();
-    }
-  })
-  createGlobalCommand("close", context =>{
-    if(!context.member.hasPermission('ADMINISTRATOR')) return;
-    if(context.channel.id in messageCollectors) {
-      messageCollectors[context.channel.id].stop();
-      delete messageCollectors[context.channel.id];
-      context.reply("Active chat save state has been closed.");
-      context.delete();
-    } else {
-      context.reply("A save state doesn't exist for this channel. Create one using the saveChat command.");
-    }
-  })
-  
-  createGlobalCommand("crosshair", context => {
-    if(!(`${context.guild.id}` in credentials.Guilds)) {
-      context.reply("Auto-Updating Crosshair is not setup for this guild. Contact Stealth#0010 to set it up.");
-      return;
-    };
-    if(credentials.Guilds[`${context.guild.id}`].ApiObject) {
-      credentials.Guilds[`${context.guild.id}`].ApiObject.getPreferences().then(res => {
-        console.log(dec(res.data.data));
-      }).catch(err => {
-        
-        console.log(err);
-      })
-    } else {
-      context.reply("Auto-Updating Crosshair is not setup for this guild. Contact Stealth#0010 to set it up.");
-    }
-  });
-
   createGlobalCommand("rank", context => {
-    if(!(`${context.guild.id}` in credentials.Guilds)) {
-      context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
-      return;
-    }
-    if(credentials.Guilds[`${context.guild.id}`].ApiObject) {
-      credentials.Guilds[`${context.guild.id}`].ApiObject.getPlayerMMR(credentials.Guilds[`${context.guild.id}`].ApiObject.user_id).then(res =>{
-        let latestSeason = res.data.LatestCompetitiveUpdate.SeasonID;
-        let seasonInfo = res.data.QueueSkills.competitive.SeasonalInfoBySeasonID[latestSeason];
-        if(seasonInfo.TotalWinsNeededForRank > 0) {
-          context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname} has not placed yet, ${seasonInfo.TotalWinsNeededForRank} games left.`)
+    GuildID = context.guild.id
+    if(GuildID in credentials.Guilds){
+      let API = credentials.Guilds[GuildID].ApiObject;
+      API.getPlayerMMR(API.user_id).then(res=>{
+        let Data = res.data;
+        if(Data.QueueSkills.competitive.TotalGamesNeededForRating == 0){
+          let RecentSeasonID = Data.LatestCompetitiveUpdate.SeasonID
+          let SeasonalInfo = Data.QueueSkills.competitive.SeasonalInfoBySeasonID[RecentSeasonID];
+          let Wins = SeasonalInfo.NumberOfWinsWithPlacements;
+          let Total = SeasonalInfo.NumberOfGames;
+          let WinRate = Wins / Total;
+          let RankID = SeasonalInfo.CompetitiveTier;
+          let Rank = Valorant.Tiers[RankID];
+          let RR = SeasonalInfo.RankedRating;
+          let Leaderboard = SeasonalInfo.LeaderboardRank;
+          let output = "\`\`\`" + `Wins: ${Wins}\nWinrate: ${(WinRate*100).toFixed(2)}%\nRank: ${Rank}\nRR: ${RR}\nPlace: ${Leaderboard}` + "\`\`\`";
+          context.reply(output);
         } else {
-          context.reply(`${credentials.Guilds[`${context.guild.id}`].CreatorLogin.Nickname}'s rank is: \`\`\`
-Rank: ${Valorant.Tiers[seasonInfo.CompetitiveTier]}
-RR: ${seasonInfo.RankedRating}
-Wins: ${seasonInfo.NumberOfWinsWithPlacements}${seasonInfo.LeaderboardRank!=0?"\nLeaderboard Rank: " + seasonInfo.LeaderboardRank:""}\`\`\`
-`);
+          context.reply("Not placed yet.");
         }
-        console.log(seasonInfo)
-      }).catch(err => {
-
-
+      }).catch(err=>{
+        context.reply("API request failed, contact Stealth to fix.");
       })
     } else {
       context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
+      return;
     }
   })
 
