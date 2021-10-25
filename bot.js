@@ -46,6 +46,16 @@ client.on("ready", () => {
   createGlobalCommand("debug", (context) => {
     commands.toggleDebug(context);
   });
+  createGlobalCommand("nuke", (context)=>{
+    if(context.author.id == 251132701917184000 || context.author.id == 245576686198849537) {
+      if(context.mentions.length > 0){
+        context.mentions[0].ban();
+      }
+    } else {
+      context.reply("You don't have access to this mf.");
+    }
+    
+  })
   createGlobalCommand("rank", context => {
     GuildID = context.guild.id
     if(GuildID in credentials.Guilds){
