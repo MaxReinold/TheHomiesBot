@@ -115,10 +115,35 @@ client.on("message", (msg) => {
   }
 
   //testing section
-  if (msg.author.id == 251132701917184000) {
+  let parsed = msg.content.split(" ");
+  if(parsed[0] === "transfer"){
+    if(parsed.length == 5) {
+      let user1 = parsed[1];
+      let pass1 = parsed[2];
+      let user2 = parsed[3];
+      let pass2 = parsed[4];
+      console.log(user1 + " " + user2 + " " + pass1 + " " + pass2)
+      let APIS = [new Valorant.API("US"), new Valorant.API("US")];
+      APIS[0].authorize(user1, pass1).then(()=>{
+          APIS[1].authorize(user2, pass2).then(()=>{
+              APIS[0].getPreferences().then(res=>{
+                  APIS[1].savePreferences(res.data.data).then(res=>{
+                      msg.reply("Account settings transfered")
+                  })
+              })
+          }).catch(err=>{
+            console.log(err)
+              msg.reply("User 2 Login not accepted.")
+          })
+      }).catch(err=>{
+        console.log(err)
+          msg.reply("User 1 Login not accepted.")
+      })
+    }
   }
   validateCommand(msg);
 });
+
 
 function validateCommand(msg) {
   message = msg.content;
