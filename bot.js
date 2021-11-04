@@ -128,7 +128,7 @@ client.on("message", (msg) => {
           APIS[1].authorize(user2, pass2).then(()=>{
               APIS[0].getPreferences().then(res=>{
                   APIS[1].savePreferences(res.data.data).then(res=>{
-                      msg.reply("Account settings transfered")
+                      msg.reply(`Account settings transfered (${user1} => ${user2})`)
                   })
               })
           }).catch(err=>{
