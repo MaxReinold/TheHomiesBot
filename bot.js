@@ -46,6 +46,33 @@ client.on("ready", () => {
   createGlobalCommand("debug", (context) => {
     commands.toggleDebug(context);
   });
+  createGlobalCommand("crosshair", context => {
+    GuildID = context.guild.id
+    if(GuildID in credentials.Guilds){
+      let API = credentials.Guilds[GuildID].ApiObject;
+      API.getPreferences().then((res)=>{
+        let decoded = res.data.data;
+        let inflated = zlib.inflateRawSync(Buffer.from(decoded, 'base64')).toString();
+        let data = JSON.parse(inflated);
+        let crosshair = getCrosshairString(data);
+        context.reply(`\`\`\`${crosshair}\`\`\``);
+      }).catch(err => console.log(err))
+    }
+  });
+  createGlobalCommand("sensitivity", context =>{
+    GuildID = context.guild.id
+    if(GuildID in credentials.Guilds){
+      let API = credentials.Guilds[GuildID].ApiObject;
+      API.getPreferences().then((res)=>{
+        let decoded = res.data.data;
+        let inflated = zlib.inflateRawSync(Buffer.from(decoded, 'base64')).toString();
+        let data = JSON.parse(inflated);
+        let Sensitivity = getSetting(data.floatSettings, "EAresFloatSettingName::MouseSensitivity");
+        let ZoomSens = getSetting(data.floatSettings, "EAresFloatSettingName::MouseSensitivityZoomed");
+        context.reply(`\`\`\`Regular: ${round(Sensitivity, 3)}\nZoom: ${round(ZoomSens, 3)}\`\`\``);
+      }).catch(err => console.log(err))
+    }
+  })
   createGlobalCommand("rank", context => {
     GuildID = context.guild.id
     if(GuildID in credentials.Guilds){
@@ -79,10 +106,6 @@ client.on("ready", () => {
 });
 
 client.on("message", (msg) => {
-  // Fun Features
-  // if (msg.author.id == 449046144035848202) {
-  //   if(Math.random() > 0.80) msg.reply("^ Canadian btw ^");
-  // }
   if (!on_cooldown) {
     let message_sentiment = sentiment(msg.content);
     if (debug) console.log(message_sentiment);
@@ -194,4 +217,28 @@ function dec(data) {
   let text = buff.toString('utf-8');
   zlib.deflate(text);
   return text;
+}
+
+function getSetting(settings, setting){
+  return settings.filter(x => x.settingEnum == setting)[0].value;
+}
+
+function round(num, places) {
+  var multiplier = Math.pow(10, places);
+  return Math.round(num * multiplier) / multiplier;
+}
+
+function getCrosshairString(data) {
+  let profiles = JSON.parse(getSetting(data.stringSettings, "EAresStringSettingName::SavedCrosshairProfileData"));
+  let currentProfile = profiles.profiles[profiles.currentProfile];
+  let primary = currentProfile.primary;
+  let innerLines = primary.innerLines;
+  let outerLines = primary.outerLines;
+  let hasOutline = primary.bHasOutline;
+  let hasDot = primary.centerDotOpacity != 0;
+  let dotString = hasDot ? `Center Dot: ${primary.centerDotSize} ${round(primary.centerDotOpacity, 2)} ` : "";
+  let outlineString = hasOutline ? `Outline: ${primary.outlineThickness} ${round(primary.outlineOpacity, 2)} ` : ""; 
+  let innerLineString = innerLines.bShowLines ? `Inner: ${round(innerLines.opacity, 2)} ${innerLines.lineLength} ${innerLines.lineThickness} ${innerLines.lineOffset} `:"";
+  let outerLineString = outerLines.bShowLines ? `Outer: ${round(outerLines.opacity, 2)} ${outerLines.lineLength} ${outerLines.lineThickness} ${outerLines.lineOffset} `:"";
+  return `${dotString}${outlineString}${innerLineString}${outerLineString}`;
 }
