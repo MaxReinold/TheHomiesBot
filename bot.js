@@ -6,6 +6,8 @@ const commands = require("./commands.js");
 const Valorant = require("@liamcottle/valorant.js");
 const valorantApi = new Valorant.API("NA");
 const zlib = require('zlib');
+let zach;
+let grimcord;
 
 function calculateElo(tier, progress) {
   if (tier >= 21) {
@@ -34,6 +36,8 @@ let RankedMessageCache;
 let messageCollectors = {};
 
 client.on("ready", () => {
+  grimcord = client.guilds.cache.find(g => g.id == "770855268421730315");
+  zack = grimcord.members.cache.find(m => m.id == "190534999575887872");
   console.log(`Logged in as ${client.user.tag}!`);
   refreshValorantApi();
   setInterval(refreshValorantApi, 600000)
@@ -102,10 +106,25 @@ client.on("ready", () => {
       return;
     }
   })
-
+  
 });
 
 client.on("message", (msg) => {
+  try{
+    if(msg.member.id == 449046144035848202/*449046144035848202*/){
+      console.log("stealth typed");
+      if(msg.content.indexOf("zack") != -1){
+        console.log("typed zack")
+        zack.setNickname("zach")
+      } else if(msg.content.indexOf("zach") != -1){
+        console.log("typed zach")
+        zack.setNickname("zack");
+      }
+    }
+  } catch (err){
+    console.error(err);
+  }
+  
   if (!on_cooldown) {
     let message_sentiment = sentiment(msg.content);
     if (debug) console.log(message_sentiment);
