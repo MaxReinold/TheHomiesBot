@@ -6,7 +6,6 @@ const commands = require("./commands.js");
 const Valorant = require("@liamcottle/valorant.js");
 const valorantApi = new Valorant.API("NA");
 const zlib = require('zlib');
-let zach;
 let grimcord;
 
 function calculateElo(tier, progress) {
@@ -18,6 +17,7 @@ function calculateElo(tier, progress) {
 }
 
 var sentiment = require("@trainorpj/sentiment");
+const { default: axios } = require("axios");
 
 let global_commands = {};
 let server_commands = {};
@@ -35,12 +35,19 @@ let apiInitialized = true;
 let RankedMessageCache;
 let messageCollectors = {};
 
+const viewsChannelID = 778735391271550977;
+const subsChannelID = 778735480979587077;
+let viewsChannel, subsChannel;
+
 client.on("ready", () => {
   grimcord = client.guilds.cache.find(g => g.id == "770855268421730315");
-  zack = grimcord.members.cache.find(m => m.id == "190534999575887872");
+  viewsChannel = grimcord.channels.cache.find(c => c.id == viewsChannelID);
+  subsChannel = grimcord.channels.cache.find(c => c.id == subsChannelID);
+  updateCounts();
+  setInterval(updateCounts, 60000);
   console.log(`Logged in as ${client.user.tag}!`);
   refreshValorantApi();
-  setInterval(refreshValorantApi, 600000)
+  setInterval(refreshValorantApi, 600000);
   createGlobalCommand("testsentiment", (context) => {
     commands.testsentiment(context);
   });
@@ -110,21 +117,6 @@ client.on("ready", () => {
 });
 
 client.on("message", (msg) => {
-  try{
-    if(msg.member.id == 449046144035848202/*449046144035848202*/){
-      console.log("stealth typed");
-      if(msg.content.indexOf("zack") != -1){
-        console.log("typed zack")
-        zack.setNickname("zach")
-      } else if(msg.content.indexOf("zach") != -1){
-        console.log("typed zach")
-        zack.setNickname("zack");
-      }
-    }
-  } catch (err){
-    console.error(err);
-  }
-  
   if (!on_cooldown) {
     let message_sentiment = sentiment(msg.content);
     if (debug) console.log(message_sentiment);
@@ -175,6 +167,18 @@ client.on("message", (msg) => {
   }
   validateCommand(msg);
 });
+
+function updateCounts() {
+  let data = axios.get("https://www.googleapis.com/youtube/v3/channels?part=statistics&id=UCWphjEePrzIrRA5mwcOt_4Q&key=AIzaSyD2wkn0CKn6Zm3jpsB9y8DPakTzEZpzBhA")
+  .then(res => {
+    let data = res.data.items[0].statistics;
+    let subs = data.subscriberCount;
+    let views = data.viewCount;
+    subsChannel.setName(`Subs: ${parseInt(subs).toLocaleString('en-US')}`);
+    viewsChannel.setName(`Views: ${parseInt(views).toLocaleString('en-US')}`);
+  })
+  .catch(err => console.log(err));
+}
 
 
 function validateCommand(msg) {
