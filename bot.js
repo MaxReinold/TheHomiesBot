@@ -258,7 +258,7 @@ function getCrosshairString(data) {
   let innerLines = primary.innerLines;
   let outerLines = primary.outerLines;
   let hasOutline = primary.bHasOutline;
-  let hasDot = primary.centerDotOpacity != 0;
+  let hasDot = primary.bDisplayCenterDot;
   let dotString = hasDot ? `Center Dot: ${primary.centerDotSize} ${round(primary.centerDotOpacity, 2)} ` : "";
   let outlineString = hasOutline ? `Outline: ${primary.outlineThickness} ${round(primary.outlineOpacity, 2)} ` : ""; 
   let innerLineString = innerLines.bShowLines ? `Inner: ${round(innerLines.opacity, 2)} ${innerLines.lineLength} ${innerLines.lineThickness} ${innerLines.lineOffset} `:"";
