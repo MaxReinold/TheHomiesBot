@@ -6,6 +6,7 @@ const commands = require("./commands.js");
 const Valorant = require("@liamcottle/valorant.js");
 const valorantApi = new Valorant.API("NA");
 const zlib = require('zlib');
+let retoolAPI = "https://retoolapi.dev/TLfu97/data";
 let grimcord;
 
 function calculateElo(tier, progress) {
@@ -58,63 +59,49 @@ client.on("ready", () => {
     commands.toggleDebug(context);
   });
   createGlobalCommand("crosshair", context => {
-    GuildID = context.guild.id
-    if(GuildID in credentials.Guilds){
-      let API = credentials.Guilds[GuildID].ApiObject;
-      API.getPreferences().then((res)=>{
-        let decoded = res.data.data;
-        let inflated = zlib.inflateRawSync(Buffer.from(decoded, 'base64')).toString();
-        let data = JSON.parse(inflated);
-        let crosshair = getCrosshairString(data);
-        context.reply(`\`\`\`${crosshair}\`\`\``);
-      }).catch(err => console.log(err))
-    }
+    getCrosshair(context.guild.id, crosshair=>{
+      context.reply(`\`\`\`${crosshair}\`\`\``);
+    });
   });
   createGlobalCommand("sensitivity", context =>{
-    GuildID = context.guild.id
-    if(GuildID in credentials.Guilds){
-      let API = credentials.Guilds[GuildID].ApiObject;
-      API.getPreferences().then((res)=>{
-        let decoded = res.data.data;
-        let inflated = zlib.inflateRawSync(Buffer.from(decoded, 'base64')).toString();
-        let data = JSON.parse(inflated);
-        let Sensitivity = getSetting(data.floatSettings, "EAresFloatSettingName::MouseSensitivity");
-        let ZoomSens = getSetting(data.floatSettings, "EAresFloatSettingName::MouseSensitivityZoomed");
-        context.reply(`\`\`\`Regular: ${round(Sensitivity, 3)}\nZoom: ${round(ZoomSens, 3)}\`\`\``);
-      }).catch(err => console.log(err))
-    }
+    getSens(context.guild.id, sens=>{
+      context.reply(`\`\`\`${sens}\`\`\``);
+    });
   })
   createGlobalCommand("rank", context => {
-    GuildID = context.guild.id
-    if(GuildID in credentials.Guilds){
-      let API = credentials.Guilds[GuildID].ApiObject;
-      API.getPlayerMMR(API.user_id).then(res=>{
-        let Data = res.data;
-        if(Data.QueueSkills.competitive.TotalGamesNeededForRating == 0){
-          let RecentSeasonID = Data.LatestCompetitiveUpdate.SeasonID
-          let SeasonalInfo = Data.QueueSkills.competitive.SeasonalInfoBySeasonID[RecentSeasonID];
-          let Wins = SeasonalInfo.NumberOfWinsWithPlacements;
-          let Total = SeasonalInfo.NumberOfGames;
-          let WinRate = Wins / Total;
-          let RankID = SeasonalInfo.CompetitiveTier;
-          let Rank = Valorant.Tiers[RankID];
-          let RR = SeasonalInfo.RankedRating;
-          let Leaderboard = SeasonalInfo.LeaderboardRank;
-          let output = "\`\`\`" + `Wins: ${Wins}\nWinrate: ${(WinRate*100).toFixed(2)}%\nRank: ${Rank}\nRR: ${RR}\nPlace: ${Leaderboard}` + "\`\`\`";
-          context.reply(output);
-        } else {
-          context.reply("Not placed yet.");
-        }
-      }).catch(err=>{
-        context.reply("API request failed, contact Stealth to fix.");
-      })
-    } else {
-      context.reply("Rank is not setup for this guild. Contact Stealth#0010 to set it up.");
-      return;
-    }
+    getRank(context.guild.id, rank => {
+      context.reply(`\`\`\`${rank}\`\`\``);
+    });
   })
-  
+
+  setInterval(updateRetool, 30000);
 });
+
+function updateRetool() {
+  let id = "770855268421730315";
+  getCrosshair(id, crosshair=>{
+    axios.put(retoolAPI + "/1", {
+      "id": 1,
+      "crosshair": crosshair
+    })
+  });
+
+  setTimeout(()=>{getSens(id, sens=>{
+    axios.put(retoolAPI + "/2", {
+      "id": 2,
+      "sens": "DPI: 800 | " + sens.replace("\n", " | ")
+    })
+  });}, 1500);
+
+  setTimeout(()=>{getRank(id, rank => {
+    axios.put(retoolAPI + "/3", {
+      "id": 3,
+      "rank": rank.replace(/\n/g, " | ")
+    })
+  });}, 3000);
+
+  setTimeout(()=>{console.log("Updated Settings.");}, 3500);
+}
 
 client.on("message", (msg) => {
   if (!on_cooldown) {
@@ -146,7 +133,6 @@ client.on("message", (msg) => {
       let pass1 = parsed[2];
       let user2 = parsed[3];
       let pass2 = parsed[4];
-      console.log(user1 + " " + user2 + " " + pass1 + " " + pass2)
       let APIS = [new Valorant.API("US"), new Valorant.API("US")];
       APIS[0].authorize(user1, pass1).then(()=>{
           APIS[1].authorize(user2, pass2).then(()=>{
@@ -236,10 +222,69 @@ function refreshValorantApi() {
 client.login(credentials.token);
 
 function dec(data) {
-  let buff = Buffer.from(data, 'base64');
-  let text = buff.toString('utf-8');
-  zlib.deflate(text);
-  return text;
+  let inflated = zlib.inflateRawSync(Buffer.from(data, 'base64')).toString();
+  let decoded = JSON.parse(inflated);
+  return decoded
+}
+
+function getAPI(id) {
+  return id in credentials.Guilds ? credentials.Guilds[id].ApiObject : null;
+}
+
+function getSens(id, then) {
+  let api = getAPI(id);
+  if(api == null) return null;
+  api.getPreferences().then((res)=>{
+    let data = dec(res.data.data);
+    let Sensitivity = getSetting(data.floatSettings, "EAresFloatSettingName::MouseSensitivity");
+    let ZoomSens = getSetting(data.floatSettings, "EAresFloatSettingName::MouseSensitivityZoomed");
+    then(`Regular: ${round(Sensitivity, 3)}\nZoom: ${round(ZoomSens, 3)}`);
+  }).catch(err => {
+    console.log(err);
+    return null;
+  })
+}
+
+function getRank(id, then) {
+  let api = getAPI(id);
+  if(api == null) then("Rank is not setup.");
+  api.getPlayerMMR(api.user_id).then(res=>{
+    let Data = res.data;
+    if(Data.QueueSkills.competitive.TotalGamesNeededForRating == 0){
+      let RecentSeasonID = Data.LatestCompetitiveUpdate.SeasonID
+      let SeasonalInfo = Data.QueueSkills.competitive.SeasonalInfoBySeasonID[RecentSeasonID];
+      let Wins = SeasonalInfo.NumberOfWinsWithPlacements;
+      let Total = SeasonalInfo.NumberOfGames;
+      let WinRate = Wins / Total;
+      let RankID = SeasonalInfo.CompetitiveTier;
+      let Rank = Valorant.Tiers[RankID];
+      let RR = SeasonalInfo.RankedRating;
+      let Leaderboard = SeasonalInfo.LeaderboardRank;
+      let output = `Wins: ${Wins}\nWinrate: ${(WinRate*100).toFixed(2)}%\nRank: ${Rank}\nRR: ${RR}\nPlace: ${Leaderboard}`;
+      then(output);
+    } else {
+      then("Not placed yet.");
+    }
+  }).catch(err => {
+    console.log(err);
+    then("Something went wrong with my brain. Please contact Stealth to heal me.");
+  })
+}
+
+function getCrosshair(id, then) {
+  let api = getAPI(id);
+  if(api == null) {
+    then("Crosshair is not setup.");
+    return;
+  }
+  api.getPreferences().then((res)=>{
+    let data = dec(res.data.data);
+    let crosshair = getCrosshairString(data);
+    then(crosshair);
+  }).catch(err => {
+    console.log(err);
+    then("Something went wrong with my brain. Please contact Stealth to heal me.");
+  })
 }
 
 function getSetting(settings, setting){
@@ -264,4 +309,5 @@ function getCrosshairString(data) {
   let innerLineString = innerLines.bShowLines ? `Inner: ${round(innerLines.opacity, 2)} ${innerLines.lineLength} ${innerLines.lineThickness} ${innerLines.lineOffset} `:"";
   let outerLineString = outerLines.bShowLines ? `Outer: ${round(outerLines.opacity, 2)} ${outerLines.lineLength} ${outerLines.lineThickness} ${outerLines.lineOffset} `:"";
   return `${dotString}${outlineString}${innerLineString}${outerLineString}`;
+
 }
