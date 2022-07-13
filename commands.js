@@ -43,3 +43,12 @@ exports.toggleDebug = (context) => {
         context.reply(`Debug has been set to ${debug}`);
       }
 }
+
+exports.banTime = (context) => {
+  if(context.author.hasPermission(Permissions.ADMINISTRATOR)) {
+    let timeFrame = [context.args[0], context.args[1]];
+    try {
+
+    }
+  }
+}
